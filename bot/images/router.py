@@ -23,7 +23,7 @@ router = Router()
 async def img_command(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ImageState.txt_to_img)
     await callback.message.edit_text('Вы вошли в режим генерации изображения. Пожалуйста, введите текст для генерации изображения')
-    await callback.message.answer('Используйте кнопку ниже, чтобы выйти из режима генерации', reply_markup=await get_stop_gen_keyboard())
+    await callback.message.answer('Используйте кнопку ниже, чтобы выйти из режима генерации.\n\n<b>💡 Подсказка:</b> Вы можете использовать <code>|||</code> для разделения положительного и отрицательного промптов.', reply_markup=await get_stop_gen_keyboard())
 
 @router.message(ImageState.txt_to_img, F.text == "🛑 Выйти из режима генерации")
 async def stop_gen(message: Message, state: FSMContext):
