@@ -1,4 +1,4 @@
-from images.enums import OutputFormat, OutputType
+from enums import OutputFormat, OutputType
 from pydantic import BaseModel, Field
 from schemas import PromptDataBase
 
@@ -14,3 +14,5 @@ class ImgToTextData(PromptDataBase):
 class ImgToTextResponse(BaseModel):
     caption: str
     image_url: str
+
+class Model(BaseModel):

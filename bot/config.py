@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     waiting_sticker_id: str
     debounce_seconds: int
     rw_api_key: str
+    redis_password: str
 
     class Config:
         env_file = ".env"

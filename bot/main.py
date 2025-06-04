@@ -4,21 +4,28 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from loguru import logger
+from aiogram.fsm.storage.redis import RedisStorage
 
 from config import settings
 from images.router import router as images_router
 from index.router import router as index_router
+from settings.router import router as settings_router
+from lora.router import router as lora_router
 
 default_bot_settings = DefaultBotProperties(parse_mode=ParseMode.HTML)
 
 async def main():
     try:
-        async with Bot(token=settings.token, default=default_bot_settings) as bot:
-            dp = Dispatcher()
+        storage = RedisStorage.from_url(f'redis://default:{settings.redis_password}@redis:6379', connection_kwargs={"password": settings.redis_password})
+        async with Bot(token=settings.token, default=default_bot_settings, storage=storage) as bot:
+            dp = Dispatcher(storage=storage)
 
             dp.include_routers(
+                index_router,
                 images_router,
-                index_router
+                lora_router,
+                settings_router,
+                
             )
 
             bot_info = await bot.get_me()

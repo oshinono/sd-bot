@@ -1,25 +1,35 @@
 import json
 import uuid
 from aiogram import Router
-from aiogram.types import Message, InlineQuery, InlineQueryResultPhoto, InputMediaPhoto, InputMediaDocument
-from images.enums import OutputFormat, OutputType
-from images.states import ImageState
-from aiogram import Bot
+from aiogram.types import Message, InlineQuery, InlineQueryResultPhoto, InputMediaPhoto, InputMediaDocument, CallbackQuery
+from enums import OutputFormat, OutputType
+from aiogram import Bot, F
 from aiogram.fsm.context import FSMContext
+from runware import ILora
 from images.utils import check_debounce
+import time
 from config import settings
 from images.service import ImgToTxtService
-from runware.types import IImageInference, ILora
-from aiogram.filters import Command
+from schemas import UserSettings
+from runware.types import IImageInference
+from images.states import ImageState
 from loguru import logger
+from images.keyboards import get_stop_gen_keyboard  
+from index.router import start
+
 router = Router()
 
-@router.message(Command('img'))
-async def img_command(message: Message, state: FSMContext):
+@router.callback_query(F.data == "generate_image")
+async def img_command(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ImageState.txt_to_img)
-    await message.answer('Вы вошли в режим генерации изображения. Пожалуйста, введите текст для генерации изображения')
+    await callback.message.edit_text('Вы вошли в режим генерации изображения. Пожалуйста, введите текст для генерации изображения')
+    await callback.message.answer('Используйте кнопку ниже, чтобы выйти из режима генерации', reply_markup=await get_stop_gen_keyboard())
 
-@router.message()
+@router.message(ImageState.txt_to_img, F.text == "🛑 Выйти из режима генерации")
+async def stop_gen(message: Message, state: FSMContext):
+    await start(message, state)
+
+@router.message(ImageState.txt_to_img)
 async def text_to_img(message: Message, bot: Bot, state: FSMContext):
     if not await check_debounce(state, message):
         await message.reply('Вы отправляете запросы слишком часто.')
@@ -27,10 +37,17 @@ async def text_to_img(message: Message, bot: Bot, state: FSMContext):
     
     prompt = message.text.strip()
     
-    
     if not prompt:
         await message.answer("Пожалуйста, введите текст для генерации изображения")
         return
+    
+    user_data = await state.get_value(f'user_{message.from_user.id}')
+
+    validated_user_data = UserSettings(**user_data)
+    dump = validated_user_data.model_dump(exclude={'last_request_datetime'})
+
+    dump['model'] = dump['model']['air']
+    dump['lora'] = [ILora(model=lora['model'], weight=lora['weight']) for lora in dump['lora']]
     
     sticker_message = await bot.send_sticker(chat_id=message.chat.id, sticker=settings.waiting_sticker_id)
 
@@ -40,25 +57,17 @@ async def text_to_img(message: Message, bot: Bot, state: FSMContext):
     img_request = IImageInference(
         positivePrompt=positive_prompt,
         negativePrompt=negative_prompt,
-        outputFormat=OutputFormat.png,
-        outputType=OutputType.url,
-        includeCost=True,
-        outputQuality=95,
-        steps=25,
-        CFGScale=7.5,
-        clipSkip=2,
-        numberResults=3,
-        height=1344,
-        width=768,
-        model='urn:air:sdxl:checkpoint:civitai:260267@293564',
-        scheduler='DPM++ 2M SDE',
-        # lora=[ILora(model='civitai:838474@938064', weight=0.7)],
+        **dump
     )
 
     try:
+        time_start = time.time()
+        logger.info(f"Positive: {positive_prompt},\nNegative: {negative_prompt}, UserID: {message.from_user.id}")
         imgs = await ImgToTxtService.generate(img_request)
-        img = imgs[0]
-        logger.info(img)
+        time_end = time.time()
+
+        log_data = {'time_elapsed': time_end - time_start, 'imgs': [img.imageURL for img in imgs], 'user_id': message.from_user.id}
+        logger.info(json.dumps(log_data, indent=2))
 
         photo_media = []
         document_media = []
@@ -75,13 +84,6 @@ async def text_to_img(message: Message, bot: Bot, state: FSMContext):
     finally:
         await bot.delete_message(message.chat.id, sticker_message.message_id)
     
-    
-
- 
-    
-    
-
-
 
 @router.inline_query()
 async def txt_to_img_inline(inline_query: InlineQuery, state: FSMContext):
@@ -145,7 +147,3 @@ async def txt_to_img_inline(inline_query: InlineQuery, state: FSMContext):
         is_personal=True
     )
 
-    
-
-    
-    

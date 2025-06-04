@@ -1,0 +1,17 @@
+services:
+  bot:
+    build: .
+    volumes:
+      - ./bot:/project/bot
+    env_file:
+      - .env
+  redis:
+    image: redis:latest
+    volumes:
+      - redis-data:/data
+    env_file:
+      - .env
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+
+volumes:
+  redis-data:
