@@ -6,6 +6,7 @@ from aiogram.enums import ParseMode
 from loguru import logger
 from aiogram.fsm.storage.redis import RedisStorage
 
+from cmnds import commands
 from config import settings
 from images.router import router as images_router
 from index.router import router as index_router
@@ -30,7 +31,8 @@ async def main():
 
             bot_info = await bot.get_me()
             logger.info(f"Бот запущен 💫  | {bot_info.full_name}, @{bot_info.username}")
-
+            
+            await bot.set_my_commands(commands)
             await bot.delete_webhook(drop_pending_updates=True)
 
             ALLOWED_UPDATES = ["message", "edited_message", "callback_query", "inline_query"]
