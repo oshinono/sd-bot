@@ -31,6 +31,8 @@ async def stop_gen(message: Message, state: FSMContext):
 
 @router.message(ImageState.txt_to_img)
 async def text_to_img(message: Message, bot: Bot, state: FSMContext):
+    if not message.text:
+        return
     if not await check_debounce(state, message):
         await message.reply('Вы отправляете запросы слишком часто.')
         return
