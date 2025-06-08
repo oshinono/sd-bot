@@ -23,7 +23,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/{{ secrets.PROJECT_NAME }}:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_NAME }}:latest
 
       - name: Деплой на прод сервер
         uses: appleboy/ssh-action@v1.0.0
@@ -35,6 +35,6 @@ jobs:
             cd /root/{{secrets.PROJECT_NAME}}
             docker compose -f docker/docker-compose-prod.yml down
             git pull
-            docker image rm ${{ secrets.DOCKERHUB_USERNAME }}/{{ secrets.PROJECT_NAME }}:latest || true
+            docker image rm ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_NAME }}:latest || true
             docker compose -f docker/docker-compose-prod.yml pull
             docker compose -f docker/docker-compose-prod.yml up -d
