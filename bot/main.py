@@ -12,6 +12,7 @@ from images.router import router as images_router
 from index.router import router as index_router
 from settings.router import router as settings_router
 from lora.router import router as lora_router
+from utils import ping_bot
 
 default_bot_settings = DefaultBotProperties(parse_mode=ParseMode.HTML)
 
@@ -36,6 +37,8 @@ async def main():
             await bot.delete_webhook(drop_pending_updates=True)
 
             ALLOWED_UPDATES = ["message", "edited_message", "callback_query", "inline_query"]
+
+            asyncio.create_task(ping_bot(bot))
 
             await dp.start_polling(bot, allowed_updates=ALLOWED_UPDATES)
     finally:
