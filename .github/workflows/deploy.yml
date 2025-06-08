@@ -32,7 +32,7 @@ jobs:
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
-            cd /root/{{secrets.PROJECT_NAME}}
+            cd /root/${{secrets.PROJECT_NAME}}
             docker compose -f docker/docker-compose-prod.yml down
             git pull
             docker image rm ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_NAME }}:latest || true
